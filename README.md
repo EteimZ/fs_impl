@@ -53,7 +53,7 @@ The `fs.create` method is used to create a file.
 file_obj = fs.open("whatever.txt")
 ```
 
-The `fs.open` method is used to create a file object which is an Instance of **File**.
+The `fs.open` method is used to get access to a file object which is an Instance of **File**.
 
 We can read from it:
 
