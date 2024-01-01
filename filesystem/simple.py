@@ -13,6 +13,7 @@ import random
 from .block import Block
 from .file import File, MetaData
 
+
 @dataclass
 class SimpleFS:
     """
@@ -160,11 +161,11 @@ class SimpleFS:
 
         file = self.root_dir.get(filename, None)
         return file
-    
+
     @property
     def total_space(self):
         return self.capacity * self.block_size
-    
+
     @property
     def free_space(self):
         free_blocks = [block for block in self.blocks if block.empty]

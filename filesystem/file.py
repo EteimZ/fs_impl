@@ -1,5 +1,4 @@
-
-from dataclasses import dataclass 
+from dataclasses import dataclass
 from datetime import datetime
 from .block import Block
 
@@ -16,6 +15,7 @@ class MetaData:
     created: datetime
     last_modified: datetime
     last_accessed: datetime
+
 
 @dataclass
 class File:
