@@ -1,6 +1,6 @@
 # File System Implementation
 
-A visual file system implemented in Python built for educational purposes.
+A virtual file system implemented in Python built for educational purposes.
 
 A file system serves as the interface between an operating system and the storage device. Its role is to establish a logical representation of the storage device. Without the file system, you would have to manually write to the storage device.
 
@@ -18,25 +18,41 @@ python main.py
 
 ## Explanation
 
-The repository currently has three major classes:
+The repository currently has four major classes:
 - **SimpleFS**
+- **Storage**
 - **Block**
 - **File**
 
-**SimpleFS** is the file system implementation. It contains a [single-level directory](https://www.codingninjas.com/studio/library/structures-of-directory). This implementation uses [non-contiguous memory allocation](https://www.youtube.com/watch?v=B1_er2nGKao&list=PLWCT05ePsnGww5psXWHRLG7p30eKKt1Pd&index=21), which is implemented using a [linked list](https://en.wikipedia.org/wiki/Linked_list). The node of the linked list is the **Block**. A block contains a fixed size of data. A collection of linked blocks forms a **File**. **SimpleFS** can contain as many files as possible, provided they don't exceed its capacity.
+**SimpleFS** is the file system implementation. It contains a [single-level directory](https://www.codingninjas.com/studio/library/structures-of-directory). This implementation uses [non-contiguous memory allocation](https://www.youtube.com/watch?v=B1_er2nGKao&list=PLWCT05ePsnGww5psXWHRLG7p30eKKt1Pd&index=21), which is implemented using a [linked list](https://en.wikipedia.org/wiki/Linked_list). It communicates with the **Storage** which is a virtual representation of a storage device(Hard disk or Flash drive). When the **SimpleFs** class is created it creates blocks. Which are a group of **Block**. These blocks map to the storage device. A **File** is a group of related blocks.
+
 
 
 ## Example
 
-Let's create a simple file system:
+First we import our required classes:
 
 ```python
-from filesystem import SimpleFS
-
-fs = SimpleFS()
+from filesystem import SimpleFS, Storage
 ```
 
-By default a simple file system has a capicity of 10. This means it can have only 10 blocks. With block size of 5. This means each block size can have only 5 bytes.
+Then we create our storage device:
+
+```python
+storage = Storage("store.bin", 10)
+storage.create()
+```
+
+The **Storage** class is creating a file called `store.bin`. Which will be used to persist the memory.
+We are also creating it with a size of 10.
+
+Now let's create a our file system and asign our created `storage` to it:
+
+```python
+fs = SimpleFS(storage=storage)
+```
+
+By default a simple file system sets it block size to 5. This means each block size can have only 5 bytes.
 
 
 Let's create a file:

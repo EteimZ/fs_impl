@@ -10,7 +10,7 @@ from typing import Dict, Optional, List
 from datetime import datetime
 import random
 
-from .block import Block
+from .block import Block, Storage
 from .file import File, MetaData
 
 
@@ -21,14 +21,15 @@ class SimpleFS:
     The blocks determine how many
     """
 
-    capacity: int = 10
-    block_size: int = 5
+    storage: Storage
+    block_size: int = 5  
     blocks: List[Block] = field(default_factory=list)
     root_dir: Dict[str, File] = field(default_factory=dict)
 
     def __post_init__(self):
-        for i in range(self.capacity):
-            self.blocks.append(Block(id=i, data=bytearray()))
+        for i in range(self.storage.capacity):
+            self.blocks.append(Block(id=i, start=i * 5))
+
 
     def open(self, file_name) -> Optional[File]:
         """
@@ -63,7 +64,7 @@ class SimpleFS:
             if block.empty:
                 block.next = None
                 block.empty = False
-                block.data = chunks[n - 1]
+                self.storage.write(block.start,chunks[n - 1] )
                 file_blocks.append(block)
                 n += 1
 
@@ -88,7 +89,7 @@ class SimpleFS:
 
         file_blocks = self.create_blocks(content)
 
-        size = sum([len(block.data) for block in file_blocks])
+        size = sum([len(self.storage.read(block.start, self.block_size )) for block in file_blocks])
 
         meta_data = MetaData(
             file_size=size,
@@ -164,7 +165,7 @@ class SimpleFS:
 
     @property
     def total_space(self):
-        return self.capacity * self.block_size
+        return self.storage.capacity * self.block_size
 
     @property
     def free_space(self):

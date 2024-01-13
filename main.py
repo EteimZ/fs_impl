@@ -1,16 +1,11 @@
-"""
-Implement a simple filesystem in python
+from filesystem import SimpleFS, Storage
 
-The filesystem will consists of blocks. It uses a linkedlist to connect each block to form 
-file. The directory structure used is a single level directory. 
-"""
+storage = Storage("store.bin", 10)
+storage.create()
 
-from filesystem import SimpleFS
+fs = SimpleFS(storage=storage)
 
-
-fs = SimpleFS()
 print(fs.blocks[0])
-print(fs.capacity)
 print(fs.block_size)
 
 """
@@ -30,8 +25,8 @@ print(file_obj.filesystem)
 
 file_obj.write("Happy new year!")
 
-for block in fs.blocks:
-    print(block.data)
+# for block in fs.blocks:
+#     print(block.data)
 
 print(file_obj.read())
 

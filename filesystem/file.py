@@ -31,9 +31,9 @@ class File:
 
         def traverse_blocks(block: Block):
             if block.next == None:
-                return block.data
+                return self.filesystem.storage.read(block.start, self.filesystem.block_size) 
             else:
-                return block.data + traverse_blocks(block.next)
+                return self.filesystem.storage.read(block.start, self.filesystem.block_size) + traverse_blocks(block.next)
 
         return traverse_blocks(self.start_block)
 
