@@ -8,6 +8,8 @@ file. The directory structure used is a single level directory.
 from dataclasses import dataclass, field
 from typing import Dict, Optional, List
 from datetime import datetime
+from dataclasses import asdict
+import json
 import random
 
 from .block import Block, Storage
@@ -22,14 +24,16 @@ class SimpleFS:
     """
 
     storage: Storage
-    block_size: int = 5  
+    block_size: int = 5
     blocks: List[Block] = field(default_factory=list)
     root_dir: Dict[str, File] = field(default_factory=dict)
 
     def __post_init__(self):
+        with open("data.json", "r") as f:
+            self.root_dir = json.load(f)
+
         for i in range(self.storage.capacity):
             self.blocks.append(Block(id=i, start=i * 5))
-
 
     def open(self, file_name) -> Optional[File]:
         """
@@ -39,10 +43,53 @@ class SimpleFS:
         file = self._get_file(file_name)
 
         if file:
-            file.meta_data.last_accessed = datetime.now()
+            file.meta_data.last_accessed = datetime.now().isoformat()
             return file
         else:
             raise Exception("File doesn't exist.")
+
+    def read(self, file: File):
+        """
+        There will be a function to read it's content
+        """
+
+        def traverse_blocks(block: Block):
+            if block.next == None:
+                return self.storage.read(block.start, self.block_size)
+            else:
+                return self.storage.read(
+                    block.start, self.block_size
+                ) + traverse_blocks(block.next)
+
+        return traverse_blocks(file.start_block)
+
+    def write(self, file: File, content):
+        """
+        This will write to a currently existing file.
+        """
+
+        self.unlink(file.name)
+        file_blocks = self.create_blocks(content)
+
+        file.start_block = file_blocks[0]
+        file.meta_data.last_modified = datetime.now().isoformat()
+
+    def append(self, file: File, new_content):
+        """
+        This will create new blocks and apend it to the last block in the file
+        """
+
+        new_blocks = self.create_blocks(new_content)
+
+        def append_to_end(block: Block, new_block: Block):
+            if block.next == None:
+                block.next = new_block
+                return
+
+            append_to_end(block.next, new_block)
+
+        file.meta_data.last_modified = datetime.now().isoformat()
+        append_to_end(file.start_block, new_blocks[0])
 
     def create_blocks(self, content):
         encoded_bytes = bytearray(content, "utf-8")
@@ -64,7 +111,7 @@ class SimpleFS:
             if block.empty:
                 block.next = None
                 block.empty = False
-                self.storage.write(block.start,chunks[n - 1] )
+                self.storage.write(block.start, chunks[n - 1])
                 file_blocks.append(block)
                 n += 1
 
@@ -89,21 +136,30 @@ class SimpleFS:
 
         file_blocks = self.create_blocks(content)
 
-        size = sum([len(self.storage.read(block.start, self.block_size )) for block in file_blocks])
+        size = sum(
+            [
+                len(self.storage.read(block.start, self.block_size))
+                for block in file_blocks
+            ]
+        )
 
         meta_data = MetaData(
             file_size=size,
-            created=datetime.now(),
-            last_accessed=datetime.now(),
-            last_modified=datetime.now(),
+            created=datetime.now().isoformat(),
+            last_accessed=datetime.now().isoformat(),
+            last_modified=datetime.now().isoformat(),
         )
 
         self.root_dir[file_name] = File(
             name=file_name,
             start_block=file_blocks[0],
             meta_data=meta_data,
-            filesystem=self,
         )
+
+        with open("data.json", "r+") as f:
+            data = asdict(self.root_dir[file_name])
+            json.dump(data, f)
+        
         print("File created successfully.")
 
     def ls(self):

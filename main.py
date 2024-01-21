@@ -20,19 +20,25 @@ print(fs.root_dir)
 file_obj = fs.open("whatever")
 print(file_obj)
 
-file_obj.read()
-print(file_obj.filesystem)
+content = fs.read(file_obj)
 
-file_obj.write("Happy new year!")
+print(content)
+
+
+fs.write(file_obj, "Happy new year!")
 
 # for block in fs.blocks:
-#     print(block.data)
+#     print(block.start)
 
-print(file_obj.read())
+# content = fs.read(file_obj)
 
-file_obj.append(" 2024")
+# print(content)
 
-print(file_obj.read())
+fs.append(file_obj, " 2024")
+
+content = fs.read(file_obj)
+
+print(content)
 file_obj.get_metadata()
 
 fs.info()
