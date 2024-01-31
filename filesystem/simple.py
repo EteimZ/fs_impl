@@ -28,18 +28,89 @@ class SimpleFS:
     blocks: List[Block] = field(default_factory=list)
     root_dir: Dict[str, File] = field(default_factory=dict)
 
-    def __post_init__(self):
-        with open("data.json", "r") as f:
-            self.root_dir = json.load(f)
+    def load_data(self):
+        data = self.storage.get_data()
+        json_dict = data["files"]
+        self.root_dir = json_dict
 
-        for i in range(self.storage.capacity):
+        keys = json_dict.keys()
+
+        for k in keys:
+            # Extract relevant data and create instances of data classes
+            file_instance = File(
+                name=json_dict[k]["name"],
+                start_block=Block(
+                    id=json_dict[k]["start_block"]["id"],
+                    start=json_dict[k]["start_block"]["start"],
+                    empty=json_dict[k]["start_block"]["empty"],
+                    next=None,  # This will be handled in the next step
+                ),
+                meta_data=MetaData(
+                    file_size=json_dict[k]["meta_data"]["file_size"],
+                    created=datetime.fromisoformat(
+                        json_dict[k]["meta_data"]["created"]
+                    ),
+                    last_modified=datetime.fromisoformat(
+                        json_dict[k]["meta_data"]["last_modified"]
+                    ),
+                    last_accessed=datetime.fromisoformat(
+                        json_dict[k]["meta_data"]["last_accessed"]
+                    ),
+                ),
+            )
+
+            file_instance.start_block.next = self.storage.create_block(
+                json_dict[k]["start_block"]["next"]
+            )
+        
+
+    def __post_init__(self):
+        try:
+
+            data = self.storage.get_data()
+            json_dict = data["files"]
+            
+
+            keys = json_dict.keys()
+
+            for k in keys:
+                # Extract relevant data and create instances of data classes
+                file_instance = File(
+                    name=json_dict[k]["name"],
+                    start_block=Block(
+                        id=json_dict[k]["start_block"]["id"],
+                        start=json_dict[k]["start_block"]["start"],
+                        empty=json_dict[k]["start_block"]["empty"],
+                        next=None,  # This will be handled in the next step
+                    ),
+                    meta_data=MetaData(
+                        file_size=json_dict[k]["meta_data"]["file_size"],
+                        created=json_dict[k]["meta_data"]["created"],
+                        last_modified=json_dict[k]["meta_data"]["last_modified"],
+                        last_accessed=json_dict[k]["meta_data"]["last_accessed"],
+                    ),
+                )
+
+                file_instance.start_block.next = self.storage.create_block(
+                    json_dict[k]["start_block"]["next"]
+                )
+
+                self.root_dir[k] = file_instance
+
+        except FileNotFoundError:
+            pass
+        
+        num_block = int(self.storage.capacity / self.block_size)
+
+
+        for i in range(num_block):
             self.blocks.append(Block(id=i, start=i * 5))
 
     def open(self, file_name) -> Optional[File]:
         """
         This will give the user access to an existing file.
         """
-
+        # import pdb; pdb.set_trace()
         file = self._get_file(file_name)
 
         if file:
@@ -72,8 +143,11 @@ class SimpleFS:
         file_blocks = self.create_blocks(content)
 
         file.start_block = file_blocks[0]
+        file.meta_data.file_size = len(file_blocks)
         file.meta_data.last_modified = datetime.now().isoformat()
 
+        self.storage.write_data(file.name, asdict(file))
+        
     def append(self, file: File, new_content):
         """
         This will create new blocks and apend it to the last block in the file
@@ -87,15 +161,19 @@ class SimpleFS:
                 return
 
             append_to_end(block.next, new_block)
-
+        
+        file.meta_data += len(new_blocks)
         file.meta_data.last_modified = datetime.now().isoformat()
         append_to_end(file.start_block, new_blocks[0])
+
+        self.storage.write_data(file.name, asdict(file))
 
     def create_blocks(self, content):
         encoded_bytes = bytearray(content, "utf-8")
 
         if len(encoded_bytes) > self.free_space:
             raise Exception("Space not available")
+        
 
         chunks = [
             encoded_bytes[i : i + self.block_size]
@@ -156,10 +234,8 @@ class SimpleFS:
             meta_data=meta_data,
         )
 
-        with open("data.json", "r+") as f:
-            data = asdict(self.root_dir[file_name])
-            json.dump(data, f)
-        
+        self.storage.write_data(file_name, asdict(self.root_dir[file_name]))
+
         print("File created successfully.")
 
     def ls(self):
@@ -186,6 +262,8 @@ class SimpleFS:
         self.unlink(filename)
 
         del self.root_dir[filename]
+
+        self.storage.delete_data(filename)
 
         print("File deleted successfully.")
 
